@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Word Guess - Aurora Edition</title>
+    <style>
+        :root { 
+            --primary: #8b5cf6; --secondary: #06b6d4; --accent: #f472b6;
+            --bg-dark: #0f172a; --card-glass: rgba(255, 255, 255, 0.08);
+            --border-glass: rgba(255, 255, 255, 0.15);
+        }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body { 
+            font-family: 'Inter', -apple-system, sans-serif; 
+            background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #312e81 100%);
+            background-attachment: fixed;
+            color: #f8fafc; margin: 0; padding: 20px; min-height: 100vh;
+        }
+        
+        h1 { 
+            text-align: center; font-size: 1.8rem; font-weight: 800; margin: 10px 0 25px;
+            background: linear-gradient(to right, #818cf8, #f472b6);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            letter-spacing: -1px;
+        }
+
+        /* 设置区 */
+        .glass-card {
+            background: var(--card-glass); backdrop-filter: blur(12px);
+            border: 1px solid var(--border-glass); border-radius: 20px;
+            padding: 20px; margin-bottom: 20px; box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+        }
+
+        .input-team {
+            width: 100%; background: rgba(0,0,0,0.2); border: 1px solid var(--border-glass);
+            padding: 14px; border-radius: 12px; color: white; font-size: 1rem; margin-bottom: 15px;
+        }
+
+        /* 难度选择按钮 */
+        .diff-row { display: flex; gap: 10px; }
+        .diff-chip { 
+            flex: 1; padding: 12px; border-radius: 10px; border: 1px solid var(--border-glass);
+            background: rgba(255,255,255,0.05); color: #94a3b8; font-weight: 600; transition: 0.3s;
+        }
+        .diff-chip.active { 
+            background: linear-gradient(45deg, var(--primary), var(--secondary));
+            color: white; border: none; transform: scale(1.05); box-shadow: 0 0 15px rgba(139,92,246,0.4);
+        }
+
+        /* 分类网格 */
+        .cat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 140px; }
+        .cat-box { 
+            background: var(--card-glass); border: 1px solid var(--border-glass);
+            padding: 25px 15px; border-radius: 18px; text-align: center; transition: 0.2s;
+        }
+        .cat-box.selected { 
+            background: rgba(255,255,255,0.15); border-color: var(--secondary);
+            box-shadow: inset 0 0 10px var(--secondary);
+        }
+        .cat-icon { font-size: 1.8rem; display: block; margin-bottom: 8px; filter: drop-shadow(0 0 5px rgba(255,255,255,0.3)); }
+
+        /* 底部固定操作栏 */
+        .sticky-nav { 
+            position: fixed; bottom: 0; left: 0; right: 0; 
+            background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(20px);
+            padding: 20px 25px env(safe-area-inset-bottom); border-top: 1px solid var(--border-glass);
+            display: flex; flex-direction: column; gap: 12px;
+        }
+
+        .btn-play { 
+            background: linear-gradient(90deg, #f472b6, #8b5cf6); color: white;
+            width: 100%; padding: 16px; border-radius: 14px; border: none;
+            font-size: 1.1rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1px;
+        }
+        .btn-play:disabled { opacity: 0.4; background: #475569; }
+
+        /* 游戏界面 */
+        .game-full { 
+            display: none; position: fixed; inset: 0; 
+            background: linear-gradient(180deg, #1e1b4b 0%, #0f172a 100%);
+            padding: 25px; z-index: 100; flex-direction: column;
+        }
+        .header-stats { display: flex; justify-content: space-between; font-size: 0.9rem; color: var(--secondary); font-weight: bold; }
+        .word-hero { 
+            flex: 1; display: flex; align-items: center; justify-content: center; 
+            font-size: 4rem; font-weight: 900; text-align: center;
+            text-shadow: 0 0 20px rgba(139,92,246,0.6);
+        }
+        .timer-circle { font-size: 4.5rem; font-weight: 200; text-align: center; color: var(--accent); margin-bottom: 40px; }
+        
+        .game-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .btn-g { height: 75px; border-radius: 18px; border: none; font-size: 1.1rem; font-weight: bold; color: white; }
+        .btn-pass { background: rgba(255,255,255,0.1); border: 1px solid var(--border-glass); }
+        .btn-win { background: linear-gradient(45deg, #10b981, #06b6d4); box-shadow: 0 4px 15px rgba(16,185,129,0.3); }
+
+        /* 排行榜 */
+        #statModal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 200; align-items: center; justify-content: center; padding: 20px; }
+        .stat-content { background: #1e293b; width: 100%; border-radius: 24px; padding: 25px; border: 1px solid var(--primary); max-height: 75vh; overflow-y: auto; }
+    </style>
+</head>
+<body>
+
+<div id="home">
+    <h1>WORD GUESS</h1>
+    
+    <div class="glass-card">
+        <input type="text" id="teamName" class="input-team" placeholder="Player/Team Name">
+        <div class="diff-row">
+            <button class="diff-chip active" onclick="updateDiff('Easy', this)">Easy</button>
+            <button class="diff-chip" onclick="updateDiff('Medium', this)">Medium</button>
+            <button class="diff-chip" onclick="updateDiff('Hard', this)">Hard</button>
+        </div>
+    </div>
+
+    <div class="cat-grid" id="catGrid"></div>
+</div>
+
+<div class="sticky-nav">
+    <button id="startBtn" class="btn-play" onclick="goGame()" disabled>Select Category</button>
+    <div style="display:flex; justify-content:space-between; padding: 0 5px;">
+        <span onclick="showRank()" style="color:var(--secondary); font-size: 0.9rem; font-weight: 600;">Records</span>
+        <span onclick="resetAll()" style="color:#64748b; font-size: 0.9rem;">Reset All</span>
+    </div>
+</div>
+
+<div id="gameView" class="game-full">
+    <div class="header-stats">
+        <span id="vCat"></span>
+        <span id="vProg"></span>
+        <span id="vScore">Score: 0</span>
+    </div>
+    <div id="vWord" class="word-hero">...</div>
+    <div id="vTimer" class="timer-circle">30</div>
+    <div class="game-btns">
+        <button class="btn-g btn-pass" onclick="handleBtn(false)">PASS</button>
+        <button class="btn-g btn-win" onclick="handleBtn(true)">SUCCESS</button>
+    </div>
+</div>
+
+<div id="statModal" onclick="if(event.target==this) this.style.display='none'">
+    <div class="stat-content">
+        <h2 style="margin-top:0; color:var(--primary)">Hall of Fame</h2>
+        <div id="rankList"></div>
+    </div>
+</div>
+
+<audio id="beep" src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg"></audio>
+
+<script>
+    const bank = {
+        "Tech": { icon: "🛸", Easy: ["iPhone", "Robot", "Laptop", "Camera", "Email"], Medium: ["Battery", "Printer", "Sensor", "Drone", "VR"], Hard: ["Algorithm", "Satellite", "Database", "Chip", "Bluetooth"] },
+        "Cities": { icon: "🏙️", Easy: ["Park", "School", "Store", "Hospital", "Zoo"], Medium: ["Airport", "Library", "Gym", "Museum", "Subway"], Hard: ["Embassy", "Cathedral", "Canyon", "Laboratory", "Warehouse"] },
+        "Play": { icon: "🕹️", Easy: ["Soccer", "Tennis", "Swim", "Run", "Jump"], Medium: ["Boxing", "Yoga", "Skiing", "Cycling", "Golf"], Hard: ["Archery", "Fencing", "Rugby", "Surfing", "Gymnastics"] },
+        "Jobs": { icon: "👨‍🚀", Easy: ["Doctor", "Chef", "Nurse", "Teacher", "Driver"], Medium: ["Pilot", "Lawyer", "Artist", "Engineer", "Police"], Hard: ["Architect", "Scientist", "Psychologist", "Accountant", "Mechanic"] },
+        "Food": { icon: "🍦", Easy: ["Pizza", "Apple", "Cake", "Milk", "Bread"], Medium: ["Steak", "Burger", "Salad", "Coffee", "Pasta"], Hard: ["Sushi", "Avocado", "Pudding", "Taco", "Champagne"] },
+        "Home": { icon: "🛋️", Easy: ["Phone", "Book", "Chair", "Table", "Backpack"], Medium: ["Watch", "Camera", "Mirror", "Wallet", "Umbrella"], Hard: ["Microscope", "Calendar", "Passport", "Hammer", "Anchor"] }
+    };
+
+    let sCat = null, sDiff = "Easy", score = 0, idx = 0, timer = null, time = 30, words = [];
+
+    const catGrid = document.getElementById('catGrid');
+    Object.keys(bank).forEach(c => {
+        const div = document.createElement('div'); div.className = 'cat-box';
+        div.innerHTML = `<span class="cat-icon">${bank[c].icon}</span><span style="font-weight:600">${c}</span>`;
+        div.onclick = () => {
+            document.querySelectorAll('.cat-box').forEach(b => b.classList.remove('selected'));
+            div.classList.add('selected'); sCat = c;
+            document.getElementById('startBtn').disabled = false;
+            document.getElementById('startBtn').innerText = "PLAY " + c;
+        };
+        catGrid.appendChild(div);
+    });
+
+    function updateDiff(d, el) {
+        document.querySelectorAll('.diff-chip').forEach(c => c.classList.remove('active'));
+        el.classList.add('active'); sDiff = d;
+    }
+
+    function goGame() {
+        words = [...bank[sCat][sDiff]].sort(() => Math.random() - 0.5);
+        idx = 0; score = 0;
+        document.getElementById('vCat').innerText = sCat + " • " + sDiff;
+        document.getElementById('gameView').style.display = 'flex';
+        render();
+    }
+
+    function render() {
+        clearInterval(timer);
+        time = 30;
+        document.getElementById('vTimer').innerText = "30";
+        document.getElementById('vWord').innerText = words[idx];
+        document.getElementById('vProg').innerText = `${idx + 1}/5`;
+        document.getElementById('vScore').innerText = `Score: ${score}`;
+        timer = setInterval(() => {
+            time--;
+            document.getElementById('vTimer').innerText = time;
+            if (time <= 0) { clearInterval(timer); document.getElementById('beep').play(); }
+        }, 1000);
+    }
+
+    function handleBtn(win) {
+        if (win) score += (sDiff === 'Easy' ? 10 : sDiff === 'Medium' ? 20 : 30);
+        if (idx < 4) { idx++; render(); } else { end(); }
+    }
+
+    function end() {
+        clearInterval(timer);
+        const team = document.getElementById('teamName').value || "Guest";
+        let logs = JSON.parse(localStorage.getItem('wg_pro') || "[]");
+        logs.push({ t: team, s: score, c: sCat, d: new Date().toLocaleDateString() });
+        localStorage.setItem('wg_pro', JSON.stringify(logs));
+        alert(`MISSION COMPLETE\n${team}: ${score} points`);
+        location.reload();
+    }
+
+    function showRank() {
+        const logs = JSON.parse(localStorage.getItem('wg_pro') || "[]");
+        let html = logs.length ? "" : "<p style='color:#64748b'>No records found.</p>";
+        logs.sort((a,b) => b.s - a.s).forEach(l => {
+            html += `<div style="display:flex; justify-content:space-between; padding:15px 0; border-bottom:1px solid #334155">
+                <span><b>${l.t}</b><br><small style="color:#64748b">${l.c} | ${l.d}</small></span>
+                <span style="color:var(--secondary); font-weight:800; font-size:1.1rem">${l.s}</span>
+            </div>`;
+        });
+        document.getElementById('rankList').innerHTML = html;
+        document.getElementById('statModal').style.display = 'flex';
+    }
+
+    function resetAll() { if (confirm("Clear history?")) { localStorage.removeItem('wg_pro'); showRank(); } }
+</script>
+</body>
+</html>
