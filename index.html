@@ -2,232 +2,603 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Word Guess - Aurora Edition</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Describe & Guess - Mobile Edition</title>
     <style>
-        :root { 
-            --primary: #8b5cf6; --secondary: #06b6d4; --accent: #f472b6;
-            --bg-dark: #0f172a; --card-glass: rgba(255, 255, 255, 0.08);
-            --border-glass: rgba(255, 255, 255, 0.15);
+        :root {
+            --primary: #3498db;
+            --success: #2ecc71;
+            --danger: #e74c3c;
+            --dark: #2c3e50;
+            --light: #ecf0f1;
+            --warning: #f39c12;
         }
-        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        body { 
-            font-family: 'Inter', -apple-system, sans-serif; 
-            background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #312e81 100%);
-            background-attachment: fixed;
-            color: #f8fafc; margin: 0; padding: 20px; min-height: 100vh;
+
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-color: #f0f2f5;
+            color: #333;
+            touch-action: manipulation;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        #app {
+            width: 100%;
+            max-width: 600px;
+            background: white;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        .hidden { display: none !important; }
+
+        /* --- 顶部信息栏 --- */
+        .top-bar {
+            background-color: var(--dark);
+            color: white;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: max(15px, env(safe-area-inset-top));
+        }
+
+        .btn-small {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+
+        /* --- 全屏沉浸式计分板 --- */
+        #leaderboard-modal {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(30, 43, 56, 0.98);
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: max(40px, env(safe-area-inset-top)) 20px 20px 20px;
+            color: white;
+        }
+
+        #close-leaderboard {
+            position: absolute;
+            top: max(20px, env(safe-area-inset-top));
+            right: 20px;
+            background: transparent;
+            border: none;
+            color: white;
+            font-size: 3.5em;
+            line-height: 0.5;
+            cursor: pointer;
+        }
+
+        .team-scores-container {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            width: 100%;
+            max-width: 400px;
+            margin-top: 20px;
+        }
+
+        .team-score-badge {
+            background: rgba(255,255,255,0.1);
+            padding: 15px 25px;
+            border-radius: 12px;
+            font-size: 1.4em;
+            font-weight: bold;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        /* --- 主页设置屏幕 --- */
+        #setup-screen, #final-screen {
+            padding: 20px;
+            flex-grow: 1;
+            overflow-y: auto;
+            padding-bottom: max(20px, env(safe-area-inset-bottom));
         }
         
-        h1 { 
-            text-align: center; font-size: 1.8rem; font-weight: 800; margin: 10px 0 25px;
-            background: linear-gradient(to right, #818cf8, #f472b6);
-            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-            letter-spacing: -1px;
-        }
-
-        /* 设置区 */
-        .glass-card {
-            background: var(--card-glass); backdrop-filter: blur(12px);
-            border: 1px solid var(--border-glass); border-radius: 20px;
-            padding: 20px; margin-bottom: 20px; box-shadow: 0 8px 32px rgba(0,0,0,0.3);
-        }
-
-        .input-team {
-            width: 100%; background: rgba(0,0,0,0.2); border: 1px solid var(--border-glass);
-            padding: 14px; border-radius: 12px; color: white; font-size: 1rem; margin-bottom: 15px;
-        }
-
-        /* 难度选择按钮 */
-        .diff-row { display: flex; gap: 10px; }
-        .diff-chip { 
-            flex: 1; padding: 12px; border-radius: 10px; border: 1px solid var(--border-glass);
-            background: rgba(255,255,255,0.05); color: #94a3b8; font-weight: 600; transition: 0.3s;
-        }
-        .diff-chip.active { 
-            background: linear-gradient(45deg, var(--primary), var(--secondary));
-            color: white; border: none; transform: scale(1.05); box-shadow: 0 0 15px rgba(139,92,246,0.4);
-        }
-
-        /* 分类网格 */
-        .cat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 140px; }
-        .cat-box { 
-            background: var(--card-glass); border: 1px solid var(--border-glass);
-            padding: 25px 15px; border-radius: 18px; text-align: center; transition: 0.2s;
-        }
-        .cat-box.selected { 
-            background: rgba(255,255,255,0.15); border-color: var(--secondary);
-            box-shadow: inset 0 0 10px var(--secondary);
-        }
-        .cat-icon { font-size: 1.8rem; display: block; margin-bottom: 8px; filter: drop-shadow(0 0 5px rgba(255,255,255,0.3)); }
-
-        /* 底部固定操作栏 */
-        .sticky-nav { 
-            position: fixed; bottom: 0; left: 0; right: 0; 
-            background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(20px);
-            padding: 20px 25px env(safe-area-inset-bottom); border-top: 1px solid var(--border-glass);
-            display: flex; flex-direction: column; gap: 12px;
-        }
-
-        .btn-play { 
-            background: linear-gradient(90deg, #f472b6, #8b5cf6); color: white;
-            width: 100%; padding: 16px; border-radius: 14px; border: none;
-            font-size: 1.1rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1px;
-        }
-        .btn-play:disabled { opacity: 0.4; background: #475569; }
-
-        /* 游戏界面 */
-        .game-full { 
-            display: none; position: fixed; inset: 0; 
-            background: linear-gradient(180deg, #1e1b4b 0%, #0f172a 100%);
-            padding: 25px; z-index: 100; flex-direction: column;
-        }
-        .header-stats { display: flex; justify-content: space-between; font-size: 0.9rem; color: var(--secondary); font-weight: bold; }
-        .word-hero { 
-            flex: 1; display: flex; align-items: center; justify-content: center; 
-            font-size: 4rem; font-weight: 900; text-align: center;
-            text-shadow: 0 0 20px rgba(139,92,246,0.6);
-        }
-        .timer-circle { font-size: 4.5rem; font-weight: 200; text-align: center; color: var(--accent); margin-bottom: 40px; }
+        h1 { text-align: center; color: var(--dark); margin-top: 10px; font-size: 1.8em; }
         
-        .game-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-        .btn-g { height: 75px; border-radius: 18px; border: none; font-size: 1.1rem; font-weight: bold; color: white; }
-        .btn-pass { background: rgba(255,255,255,0.1); border: 1px solid var(--border-glass); }
-        .btn-win { background: linear-gradient(45deg, #10b981, #06b6d4); box-shadow: 0 4px 15px rgba(16,185,129,0.3); }
+        .turn-indicator {
+            text-align: center; font-size: 1.3em; font-weight: bold; 
+            color: var(--primary); margin: 15px 0; background: #eaf2f8; 
+            padding: 15px; border-radius: 8px; border-left: 5px solid var(--primary);
+        }
 
-        /* 排行榜 */
-        #statModal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 200; align-items: center; justify-content: center; padding: 20px; }
-        .stat-content { background: #1e293b; width: 100%; border-radius: 24px; padding: 25px; border: 1px solid var(--primary); max-height: 75vh; overflow-y: auto; }
+        .section-title { font-weight: bold; color: var(--dark); margin: 15px 0 10px 0; border-bottom: 2px solid var(--light); padding-bottom: 5px; }
+
+        .selection-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+        .selection-grid.three-cols { grid-template-columns: repeat(3, 1fr); }
+
+        .card-btn {
+            background: var(--light); border: 2px solid transparent; padding: 12px 5px;
+            border-radius: 8px; text-align: center; font-weight: bold; color: var(--dark);
+        }
+        .card-btn.selected { background: #e8f8f5; border-color: var(--success); color: var(--success); }
+        .diff-points { display: block; font-size: 0.75em; font-weight: normal; margin-top: 4px; color: #7f8c8d; }
+        .card-btn.selected .diff-points { color: var(--success); }
+
+        .settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px;}
+        .input-group { display: flex; flex-direction: column; gap: 5px; }
+        .input-group label { font-size: 0.9em; font-weight: bold; color: #555; }
+        select { padding: 10px; border: 2px solid #bdc3c7; border-radius: 6px; font-size: 1em; outline: none; background: white;}
+
+        .btn-large {
+            background-color: var(--success); color: white; width: 100%; padding: 20px;
+            font-size: 1.5em; font-weight: bold; border: none; border-radius: 8px; margin-top: 10px;
+        }
+
+        /* --- 游戏界面 --- */
+        #game-screen { display: flex; flex-direction: column; flex-grow: 1; height: 100vh; }
+        
+        .game-info { background: var(--dark); color: white; padding: 10px 15px; display: flex; justify-content: space-between; font-size: 1.1em; padding-top: max(10px, env(safe-area-inset-top));}
+        
+        .word-container { flex-grow: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 20px; text-align: center; }
+        /* 在这里修改为 text-transform: lowercase; 让所有词汇显示为小写 */
+        #current-word { font-size: 5em; font-weight: 900; color: var(--dark); text-transform: lowercase; word-break: break-word; line-height: 1.1; margin-bottom: 15px; }
+        #word-points { font-size: 1.2em; font-weight: bold; color: var(--warning); background: #fcf3cf; padding: 5px 15px; border-radius: 20px; }
+
+        .timer-container { text-align: center; padding: 10px; background: #f8f9fa; border-top: 2px solid var(--light); }
+        #timer { font-size: 4.5em; font-weight: bold; color: var(--dark); font-variant-numeric: tabular-nums; }
+        
+        .text-warning { color: var(--warning) !important; }
+        .text-danger { color: var(--danger) !important; animation: pulse 1s infinite; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+
+        /* 超大盲按控制区 */
+        .controls { display: flex; height: 25vh; min-height: 150px; padding-bottom: env(safe-area-inset-bottom); background: #fff;}
+        .controls button { 
+            flex: 1; font-size: 1.8em; font-weight: bold; border: none; color: white; 
+            transition: transform 0.1s; margin: 0; border-radius: 0;
+        }
+        .controls button:active { transform: scale(0.95); }
+        #skip-btn { background-color: var(--danger); }
+        #correct-btn { background-color: var(--success); }
+
+        /* --- 结算与决赛屏幕 --- */
+        #results-screen { padding: 40px 20px; text-align: center; flex-grow: 1; display: flex; flex-direction: column; justify-content: center; }
+        .final-score { font-size: 4em; font-weight: bold; color: var(--success); margin: 20px 0; }
+        
+        #final-screen { text-align: center; justify-content: center; display: flex; flex-direction: column; }
+        .trophy { font-size: 5em; margin-bottom: 10px; }
+        .winner-badge { font-size: 2em; color: var(--warning); font-weight: bold; margin: 20px 0; }
     </style>
 </head>
 <body>
+    <div id="app">
+        <!-- 顶部信息栏 -->
+        <div class="top-bar" id="top-bar">
+            <div><strong>WORD GUESS</strong></div>
+            <button class="btn-small" id="toggle-leaderboard-btn">Leaderboard</button>
+        </div>
 
-<div id="home">
-    <h1>WORD GUESS</h1>
-    
-    <div class="glass-card">
-        <input type="text" id="teamName" class="input-team" placeholder="Player/Team Name">
-        <div class="diff-row">
-            <button class="diff-chip active" onclick="updateDiff('Easy', this)">Easy</button>
-            <button class="diff-chip" onclick="updateDiff('Medium', this)">Medium</button>
-            <button class="diff-chip" onclick="updateDiff('Hard', this)">Hard</button>
+        <!-- 全屏沉浸式计分板 -->
+        <div id="leaderboard-modal" class="hidden">
+            <button id="close-leaderboard">×</button>
+            <h1 style="color: var(--warning); margin-top: 0; font-size: 2.5em;">🏆 Standings</h1>
+            <div class="team-scores-container" id="scores-container">
+                <!-- Scores injected here -->
+            </div>
+            <button class="btn-large" style="background:#e74c3c; margin-top:40px; max-width: 300px;" id="reset-scores-btn">Reset Match</button>
+        </div>
+
+        <!-- 1. 主设置界面 -->
+        <div id="setup-screen">
+            <div class="turn-indicator" id="turn-indicator"></div>
+
+            <div class="section-title">1. Select Category</div>
+            <div class="selection-grid three-cols" id="category-grid">
+                <div class="card-btn selected" data-value="all">🌟 All</div>
+                <div class="card-btn" data-value="animals">🦁 Animals</div>
+                <div class="card-btn" data-value="food">🍚 Food</div>
+                <div class="card-btn" data-value="technology">💻 Technology</div>
+                <div class="card-btn" data-value="jobs">👩‍⚕️ Jobs</div>
+                <div class="card-btn" data-value="actions">🏃‍♂️ Actions</div>
+                <div class="card-btn" data-value="sports">🏸 Sports</div>
+                <div class="card-btn" data-value="school">📚 School</div>
+                <div class="card-btn" data-value="science">🔬 Science</div>
+            </div>
+
+            <div class="section-title">2. Difficulty</div>
+            <div class="selection-grid" id="difficulty-grid">
+                <div class="card-btn selected" data-value="mixed">🎲 Mixed<span class="diff-points">Random</span></div>
+                <div class="card-btn" data-value="easy">🟢 Easy<span class="diff-points">50 Pts</span></div>
+                <div class="card-btn" data-value="medium">🟡 Medium<span class="diff-points">100 Pts</span></div>
+                <div class="card-btn" data-value="hard">🔴 Hard<span class="diff-points">150 Pts</span></div>
+            </div>
+
+            <div class="section-title">3. Settings</div>
+            <div class="settings-grid">
+                <div class="input-group">
+                    <label>Total Teams</label>
+                    <select id="teams-count">
+                        <option value="2">2 Teams</option>
+                        <option value="3">3 Teams</option>
+                        <option value="4" selected>4 Teams</option>
+                        <option value="5">5 Teams</option>
+                        <option value="6">6 Teams</option>
+                        <option value="7">7 Teams</option>
+                        <option value="8">8 Teams</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label>Total Rounds</label>
+                    <select id="total-rounds">
+                        <option value="1">1 Round</option>
+                        <option value="2" selected>2 Rounds</option>
+                        <option value="3">3 Rounds</option>
+                        <option value="4">4 Rounds</option>
+                        <option value="5">5 Rounds</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label>Words per Turn</label>
+                    <select id="words-per-round">
+                        <option value="5">5 Words</option>
+                        <option value="10" selected>10 Words</option>
+                        <option value="15">15 Words</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label>Time per Word</label>
+                    <select id="time-per-word">
+                        <option value="30">30s</option>
+                        <option value="45">45s</option>
+                        <option value="60" selected>60s</option>
+                    </select>
+                </div>
+            </div>
+
+            <button id="start-btn" class="btn-large" style="margin-top:10px;">START TURN</button>
+        </div>
+
+        <!-- 2. 游戏游玩界面 -->
+        <div id="game-screen" class="hidden">
+            <div class="game-info">
+                <span id="playing-team-label">T1</span>
+                <span id="progress-label">1/10</span>
+                <span>Pts: <strong id="current-round-score">0</strong></span>
+            </div>
+
+            <div class="word-container">
+                <div id="current-word">READY?</div>
+                <div id="word-points" class="hidden"></div>
+            </div>
+
+            <div class="timer-container">
+                <div id="timer">60</div>
+            </div>
+
+            <div class="controls">
+                <button id="skip-btn">SKIP ⏭</button>
+                <button id="correct-btn">CORRECT ✅</button>
+            </div>
+        </div>
+
+        <!-- 3. 单轮结算界面 -->
+        <div id="results-screen" class="hidden">
+            <h2>Turn Complete!</h2>
+            <div style="font-size: 1.5em; color: var(--dark);" id="results-team-name">Team 1</div>
+            <div>Scored this turn:</div>
+            <div class="final-score" id="final-score-display">+ 0</div>
+            <div style="font-size: 1.2em; margin-bottom: 20px;">Total Team Score: <strong id="total-team-score" style="color:var(--dark);">0</strong></div>
+            
+            <button id="next-team-btn" class="btn-large" style="background-color: var(--primary);">Next Turn ➔</button>
+        </div>
+
+        <!-- 4. 最终总冠军界面 -->
+        <div id="final-screen" class="hidden">
+            <div class="trophy">🏆</div>
+            <h1 style="font-size: 2.5em; margin:0;">GAME OVER</h1>
+            <div class="winner-badge" id="winner-announcement">Team X Wins!</div>
+            
+            <h3 style="color: var(--dark); border-bottom: 2px solid #ccc; padding-bottom: 10px;">Final Standings</h3>
+            <div id="final-scores-list" style="font-size: 1.5em; line-height: 1.8; margin-bottom: 30px;">
+                <!-- Final scores injected here -->
+            </div>
+            
+            <button id="new-game-btn" class="btn-large">Start New Game</button>
         </div>
     </div>
 
-    <div class="cat-grid" id="catGrid"></div>
-</div>
+    <!-- 音效资产：使用100%稳定的官方音源 -->
+    <audio id="sfx-correct" src="https://www.myinstants.com/media/sounds/mario-coin.mp3" preload="auto"></audio>
+    <audio id="sfx-beep" src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg" preload="auto"></audio>
+    <audio id="sfx-timeout" src="https://actions.google.com/sounds/v1/alarms/bugle_tune.ogg" preload="auto"></audio>
 
-<div class="sticky-nav">
-    <button id="startBtn" class="btn-play" onclick="goGame()" disabled>Select Category</button>
-    <div style="display:flex; justify-content:space-between; padding: 0 5px;">
-        <span onclick="showRank()" style="color:var(--secondary); font-size: 0.9rem; font-weight: 600;">Records</span>
-        <span onclick="resetAll()" style="color:#64748b; font-size: 0.9rem;">Reset All</span>
-    </div>
-</div>
-
-<div id="gameView" class="game-full">
-    <div class="header-stats">
-        <span id="vCat"></span>
-        <span id="vProg"></span>
-        <span id="vScore">Score: 0</span>
-    </div>
-    <div id="vWord" class="word-hero">...</div>
-    <div id="vTimer" class="timer-circle">30</div>
-    <div class="game-btns">
-        <button class="btn-g btn-pass" onclick="handleBtn(false)">PASS</button>
-        <button class="btn-g btn-win" onclick="handleBtn(true)">SUCCESS</button>
-    </div>
-</div>
-
-<div id="statModal" onclick="if(event.target==this) this.style.display='none'">
-    <div class="stat-content">
-        <h2 style="margin-top:0; color:var(--primary)">Hall of Fame</h2>
-        <div id="rankList"></div>
-    </div>
-</div>
-
-<audio id="beep" src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg"></audio>
-
-<script>
-    const bank = {
-        "Tech": { icon: "🛸", Easy: ["iPhone", "Robot", "Laptop", "Camera", "Email"], Medium: ["Battery", "Printer", "Sensor", "Drone", "VR"], Hard: ["Algorithm", "Satellite", "Database", "Chip", "Bluetooth"] },
-        "Cities": { icon: "🏙️", Easy: ["Park", "School", "Store", "Hospital", "Zoo"], Medium: ["Airport", "Library", "Gym", "Museum", "Subway"], Hard: ["Embassy", "Cathedral", "Canyon", "Laboratory", "Warehouse"] },
-        "Play": { icon: "🕹️", Easy: ["Soccer", "Tennis", "Swim", "Run", "Jump"], Medium: ["Boxing", "Yoga", "Skiing", "Cycling", "Golf"], Hard: ["Archery", "Fencing", "Rugby", "Surfing", "Gymnastics"] },
-        "Jobs": { icon: "👨‍🚀", Easy: ["Doctor", "Chef", "Nurse", "Teacher", "Driver"], Medium: ["Pilot", "Lawyer", "Artist", "Engineer", "Police"], Hard: ["Architect", "Scientist", "Psychologist", "Accountant", "Mechanic"] },
-        "Food": { icon: "🍦", Easy: ["Pizza", "Apple", "Cake", "Milk", "Bread"], Medium: ["Steak", "Burger", "Salad", "Coffee", "Pasta"], Hard: ["Sushi", "Avocado", "Pudding", "Taco", "Champagne"] },
-        "Home": { icon: "🛋️", Easy: ["Phone", "Book", "Chair", "Table", "Backpack"], Medium: ["Watch", "Camera", "Mirror", "Wallet", "Umbrella"], Hard: ["Microscope", "Calendar", "Passport", "Hammer", "Anchor"] }
-    };
-
-    let sCat = null, sDiff = "Easy", score = 0, idx = 0, timer = null, time = 30, words = [];
-
-    const catGrid = document.getElementById('catGrid');
-    Object.keys(bank).forEach(c => {
-        const div = document.createElement('div'); div.className = 'cat-box';
-        div.innerHTML = `<span class="cat-icon">${bank[c].icon}</span><span style="font-weight:600">${c}</span>`;
-        div.onclick = () => {
-            document.querySelectorAll('.cat-box').forEach(b => b.classList.remove('selected'));
-            div.classList.add('selected'); sCat = c;
-            document.getElementById('startBtn').disabled = false;
-            document.getElementById('startBtn').innerText = "PLAY " + c;
+    <script>
+        const wordDb = {
+            animals: {
+                easy: ['Cat', 'Dog', 'Bird', 'Fish', 'Monkey', 'Cow', 'Chicken', 'Duck', 'Horse', 'Rabbit'],
+                medium: ['Tiger', 'Elephant', 'Orangutan', 'Crocodile', 'Snake', 'Turtle', 'Eagle', 'Dolphin', 'Bear', 'Lion'],
+                hard: ['Kangaroo', 'Dinosaur', 'Penguin', 'Ostrich', 'Camel', 'Gorilla', 'Squirrel', 'Rhino', 'Leopard', 'Owl']
+            },
+            food: {
+                easy: ['Rice', 'Bread', 'Apple', 'Chicken', 'Water', 'Milk', 'Egg', 'Fish', 'Banana', 'Ice Cream'],
+                medium: ['Nasi Lemak', 'Noodles', 'Coconut', 'Mango', 'Coffee', 'Pizza', 'Burger', 'Soup', 'Salad', 'Potato'],
+                hard: ['Durian', 'Pineapple', 'Spaghetti', 'Steak', 'Watermelon', 'Popcorn', 'Sausage', 'Honey', 'Biscuit', 'Chocolate']
+            },
+            technology: {
+                easy: ['Computer', 'Phone', 'Tablet', 'Mouse', 'Keyboard', 'Screen', 'Camera', 'Radio', 'Robot', 'Battery'],
+                medium: ['Internet', 'Software', 'Charger', 'Headphones', 'Printer', 'Drone', 'Speaker', 'Router', 'Smartwatch', 'Password'],
+                hard: ['Satellite', 'Microchip', 'Database', 'Server', 'Programming', 'Algorithm', 'Cybersecurity', 'Virtual Reality', 'Laser', 'Artificial Intelligence']
+            },
+            jobs: {
+                easy: ['Teacher', 'Doctor', 'Police', 'Chef', 'Driver', 'Nurse', 'Singer', 'Actor', 'Farmer', 'Guard'],
+                medium: ['Engineer', 'Pilot', 'Mechanic', 'Artist', 'Dentist', 'Firefighter', 'Photographer', 'Lawyer', 'Barber', 'Waiter'],
+                hard: ['Scientist', 'Manager', 'Reporter', 'Astronaut', 'Detective', 'Secretary', 'Captain', 'Mayor', 'Architect', 'President']
+            },
+            actions: {
+                easy: ['Run', 'Jump', 'Swim', 'Eat', 'Sleep', 'Walk', 'Talk', 'Read', 'Write', 'Play'],
+                medium: ['Dance', 'Drive', 'Climb', 'Paint', 'Cook', 'Sing', 'Throw', 'Catch', 'Hide', 'Smile'],
+                hard: ['Celebrate', 'Exercise', 'Apologize', 'Imagine', 'Measure', 'Rescue', 'Whisper', 'Interview', 'Decorate', 'Borrow']
+            },
+            sports: {
+                easy: ['Football', 'Basketball', 'Swimming', 'Running', 'Tennis', 'Walking', 'Jumping', 'Fishing', 'Skating', 'Dancing'],
+                medium: ['Badminton', 'Volleyball', 'Cycling', 'Boxing', 'Golf', 'Table Tennis', 'Karate', 'Surfing', 'Hockey', 'Yoga'],
+                hard: ['Gymnastics', 'Marathon', 'Bowling', 'Rugby', 'Skiing', 'Baseball', 'Referee', 'Athletics', 'Tournament', 'Coach']
+            },
+            school: {
+                easy: ['Student', 'Teacher', 'Pen', 'Book', 'Desk', 'Classroom', 'Paper', 'Ruler', 'Pencil', 'Eraser'],
+                medium: ['Library', 'Exam', 'Whiteboard', 'Backpack', 'Science', 'History', 'Math', 'Homework', 'Dictionary', 'Uniform'],
+                hard: ['Graduation', 'University', 'Schedule', 'Experiment', 'Presentation', 'Campus', 'Professor', 'Project', 'Certificate', 'Scholarship']
+            },
+            science: {
+                easy: ['Sun', 'Moon', 'Tree', 'Rain', 'Star', 'Cloud', 'Wind', 'Fire', 'Water', 'Earth'],
+                medium: ['Jungle', 'Volcano', 'River', 'Planet', 'Island', 'Mountain', 'Forest', 'Ocean', 'Cave', 'Sky'],
+                hard: ['Temperature', 'Pollution', 'Oxygen', 'Telescope', 'Earthquake', 'Dinosaur', 'Gravity', 'Weather', 'Universe', 'Energy']
+            }
         };
-        catGrid.appendChild(div);
-    });
 
-    function updateDiff(d, el) {
-        document.querySelectorAll('.diff-chip').forEach(c => c.classList.remove('active'));
-        el.classList.add('active'); sDiff = d;
-    }
+        const difficultyPoints = { easy: 50, medium: 100, hard: 150 };
 
-    function goGame() {
-        words = [...bank[sCat][sDiff]].sort(() => Math.random() - 0.5);
-        idx = 0; score = 0;
-        document.getElementById('vCat').innerText = sCat + " • " + sDiff;
-        document.getElementById('gameView').style.display = 'flex';
-        render();
-    }
+        let state = {
+            category: 'all',
+            difficulty: 'mixed',
+            numTeams: 4,
+            totalRounds: 2,
+            currentTeam: 1,
+            currentRound: 1,
+            teamScores: Array(10).fill(0),
+            
+            roundWords: [],
+            currentWordIndex: 0,
+            currentRoundScore: 0,
+            timeRemaining: 60,
+            timerInterval: null,
+            isTransitioning: false
+        };
 
-    function render() {
-        clearInterval(timer);
-        time = 30;
-        document.getElementById('vTimer').innerText = "30";
-        document.getElementById('vWord').innerText = words[idx];
-        document.getElementById('vProg').innerText = `${idx + 1}/5`;
-        document.getElementById('vScore').innerText = `Score: ${score}`;
-        timer = setInterval(() => {
-            time--;
-            document.getElementById('vTimer').innerText = time;
-            if (time <= 0) { clearInterval(timer); document.getElementById('beep').play(); }
-        }, 1000);
-    }
+        const screens = { setup: document.getElementById('setup-screen'), game: document.getElementById('game-screen'), results: document.getElementById('results-screen'), final: document.getElementById('final-screen') };
+        const els = {
+            startBtn: document.getElementById('start-btn'), skipBtn: document.getElementById('skip-btn'), correctBtn: document.getElementById('correct-btn'), nextTeamBtn: document.getElementById('next-team-btn'), newGameBtn: document.getElementById('new-game-btn'),
+            wordDisplay: document.getElementById('current-word'), pointsDisplay: document.getElementById('word-points'), timer: document.getElementById('timer'),
+            playingTeam: document.getElementById('playing-team-label'), progressLabel: document.getElementById('progress-label'), currentScore: document.getElementById('current-round-score'),
+            turnIndicator: document.getElementById('turn-indicator'), lbdModal: document.getElementById('leaderboard-modal'), scoresContainer: document.getElementById('scores-container'), topBar: document.getElementById('top-bar')
+        };
+        const sounds = { correct: document.getElementById('sfx-correct'), beep: document.getElementById('sfx-beep'), timeout: document.getElementById('sfx-timeout') };
 
-    function handleBtn(win) {
-        if (win) score += (sDiff === 'Easy' ? 10 : sDiff === 'Medium' ? 20 : 30);
-        if (idx < 4) { idx++; render(); } else { end(); }
-    }
-
-    function end() {
-        clearInterval(timer);
-        const team = document.getElementById('teamName').value || "Guest";
-        let logs = JSON.parse(localStorage.getItem('wg_pro') || "[]");
-        logs.push({ t: team, s: score, c: sCat, d: new Date().toLocaleDateString() });
-        localStorage.setItem('wg_pro', JSON.stringify(logs));
-        alert(`MISSION COMPLETE\n${team}: ${score} points`);
-        location.reload();
-    }
-
-    function showRank() {
-        const logs = JSON.parse(localStorage.getItem('wg_pro') || "[]");
-        let html = logs.length ? "" : "<p style='color:#64748b'>No records found.</p>";
-        logs.sort((a,b) => b.s - a.s).forEach(l => {
-            html += `<div style="display:flex; justify-content:space-between; padding:15px 0; border-bottom:1px solid #334155">
-                <span><b>${l.t}</b><br><small style="color:#64748b">${l.c} | ${l.d}</small></span>
-                <span style="color:var(--secondary); font-weight:800; font-size:1.1rem">${l.s}</span>
-            </div>`;
+        // 分类与难度按钮事件
+        document.querySelectorAll('.selection-grid .card-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const parent = e.currentTarget.parentElement;
+                parent.querySelectorAll('.card-btn').forEach(b => b.classList.remove('selected'));
+                e.currentTarget.classList.add('selected');
+                if (parent.id === 'category-grid') state.category = e.currentTarget.dataset.value;
+                if (parent.id === 'difficulty-grid') state.difficulty = e.currentTarget.dataset.value;
+            });
         });
-        document.getElementById('rankList').innerHTML = html;
-        document.getElementById('statModal').style.display = 'flex';
-    }
 
-    function resetAll() { if (confirm("Clear history?")) { localStorage.removeItem('wg_pro'); showRank(); } }
-</script>
+        // 排行榜控制
+        document.getElementById('toggle-leaderboard-btn').addEventListener('click', () => {
+            renderLeaderboard();
+            els.lbdModal.classList.remove('hidden');
+        });
+        document.getElementById('close-leaderboard').addEventListener('click', () => {
+            els.lbdModal.classList.add('hidden');
+        });
+        document.getElementById('reset-scores-btn').addEventListener('click', () => { 
+            if(confirm('Reset all scores and start over?')) {
+                els.lbdModal.classList.add('hidden');
+                resetFullGame();
+            }
+        });
+        
+        // 设置变更
+        document.getElementById('teams-count').addEventListener('change', (e) => { state.numTeams = parseInt(e.target.value); resetTurnCounters(); });
+        document.getElementById('total-rounds').addEventListener('change', (e) => { state.totalRounds = parseInt(e.target.value); resetTurnCounters(); });
+
+        // 按钮事件绑定
+        els.startBtn.addEventListener('click', startGame);
+        els.skipBtn.addEventListener('pointerdown', (e) => { e.preventDefault(); handleGuess(false); });
+        els.correctBtn.addEventListener('pointerdown', (e) => { e.preventDefault(); handleGuess(true); });
+        els.nextTeamBtn.addEventListener('click', processNextTurn);
+        els.newGameBtn.addEventListener('click', resetFullGame);
+
+        function resetTurnCounters() {
+            state.currentTeam = 1; state.currentRound = 1; state.teamScores.fill(0);
+            updateSetupUI();
+        }
+
+        function resetFullGame() {
+            resetTurnCounters();
+            switchScreen('setup');
+        }
+
+        function switchScreen(screenName) {
+            Object.values(screens).forEach(s => s.classList.add('hidden'));
+            screens[screenName].classList.remove('hidden');
+            els.topBar.style.display = (screenName === 'game' || screenName === 'final') ? 'none' : 'flex';
+        }
+
+        function updateSetupUI() {
+            els.turnIndicator.innerHTML = `Round ${state.currentRound} / ${state.totalRounds}<br><span style="font-size:1.2em; color:var(--dark);">Next: Team ${state.currentTeam}</span>`;
+            els.turnIndicator.style.borderColor = state.currentTeam % 2 === 0 ? '#f39c12' : '#3498db';
+        }
+
+        function renderLeaderboard() {
+            els.scoresContainer.innerHTML = '';
+            for(let i=1; i<=state.numTeams; i++) {
+                els.scoresContainer.innerHTML += `<div class="team-score-badge"><span>Team ${i}</span> <span style="color:var(--success);">${state.teamScores[i]} Pts</span></div>`;
+            }
+        }
+
+        function buildWordList() {
+            let pool = [];
+            const cats = state.category === 'all' ? Object.keys(wordDb) : [state.category];
+            const diffs = state.difficulty === 'mixed' ? ['easy', 'medium', 'hard'] : [state.difficulty];
+            
+            cats.forEach(c => { diffs.forEach(d => { wordDb[c][d].forEach(w => pool.push({ text: w, points: difficultyPoints[d] })); }); });
+
+            for (let i = pool.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [pool[i], pool[j]] = [pool[j], pool[i]];
+            }
+            return pool.slice(0, parseInt(document.getElementById('words-per-round').value));
+        }
+
+        function startGame() {
+            state.roundWords = buildWordList();
+            if(state.roundWords.length === 0) return;
+
+            // 预激活音频防止移动端限制
+            Object.values(sounds).forEach(audio => { audio.volume = 0; audio.play().catch(()=>{}); audio.pause(); audio.volume = 1; audio.currentTime = 0; });
+
+            state.currentWordIndex = 0; state.currentRoundScore = 0; state.isTransitioning = false;
+            els.playingTeam.textContent = `Team ${state.currentTeam}`; els.currentScore.textContent = '0';
+            
+            switchScreen('game');
+            els.wordDisplay.textContent = "ready?"; els.wordDisplay.style.color = "var(--dark)";
+            els.pointsDisplay.classList.add('hidden'); els.timer.textContent = "-";
+
+            setTimeout(() => {
+                els.wordDisplay.textContent = "go!";
+                setTimeout(loadNextWord, 800);
+            }, 800);
+        }
+
+        function loadNextWord() {
+            if (state.currentWordIndex >= state.roundWords.length) { endRound(); return; }
+
+            state.isTransitioning = false;
+            const currentObj = state.roundWords[state.currentWordIndex];
+            
+            els.wordDisplay.textContent = currentObj.text;
+            els.wordDisplay.style.color = 'var(--dark)';
+            els.pointsDisplay.textContent = `+${currentObj.points}`;
+            els.pointsDisplay.classList.remove('hidden');
+            els.progressLabel.textContent = `${state.currentWordIndex + 1}/${state.roundWords.length}`;
+            
+            state.timeRemaining = parseInt(document.getElementById('time-per-word').value);
+            startTimer();
+        }
+
+        function handleGuess(isCorrect) {
+            if (state.isTransitioning) return; 
+            state.isTransitioning = true; 
+            clearInterval(state.timerInterval);
+
+            if (isCorrect) {
+                playSound(sounds.correct);
+                state.currentRoundScore += state.roundWords[state.currentWordIndex].points;
+                els.currentScore.textContent = state.currentRoundScore;
+                els.wordDisplay.style.color = 'var(--success)';
+            } else {
+                els.wordDisplay.style.color = 'var(--danger)';
+            }
+
+            state.currentWordIndex++;
+            setTimeout(loadNextWord, 300); // 300ms 延迟防止双击
+        }
+
+        function startTimer() {
+            clearInterval(state.timerInterval);
+            els.timer.textContent = state.timeRemaining;
+            els.timer.classList.remove('text-warning', 'text-danger');
+
+            state.timerInterval = setInterval(() => {
+                state.timeRemaining--;
+                els.timer.textContent = state.timeRemaining;
+
+                if (state.timeRemaining <= 10 && state.timeRemaining > 3) {
+                    els.timer.classList.add('text-warning');
+                } else if (state.timeRemaining <= 3 && state.timeRemaining > 0) {
+                    els.timer.classList.remove('text-warning'); els.timer.classList.add('text-danger'); playSound(sounds.beep);
+                } else if (state.timeRemaining <= 0) {
+                    clearInterval(state.timerInterval); playSound(sounds.timeout); handleGuess(false);
+                }
+            }, 1000);
+        }
+
+        function endRound() {
+            clearInterval(state.timerInterval);
+            state.teamScores[state.currentTeam] += state.currentRoundScore;
+            
+            document.getElementById('results-team-name').textContent = `Team ${state.currentTeam}`;
+            document.getElementById('final-score-display').textContent = `+ ${state.currentRoundScore}`;
+            document.getElementById('total-team-score').textContent = state.teamScores[state.currentTeam];
+            
+            switchScreen('results');
+        }
+
+        function processNextTurn() {
+            state.currentTeam++;
+            if(state.currentTeam > state.numTeams) {
+                state.currentTeam = 1;
+                state.currentRound++;
+            }
+            
+            if(state.currentRound > state.totalRounds) {
+                showFinalLeaderboard();
+            } else {
+                updateSetupUI();
+                switchScreen('setup');
+            }
+        }
+
+        function showFinalLeaderboard() {
+            const listObj = [];
+            for(let i=1; i<=state.numTeams; i++) listObj.push({ team: i, score: state.teamScores[i] });
+            listObj.sort((a,b) => b.score - a.score);
+            
+            document.getElementById('winner-announcement').textContent = `Team ${listObj[0].team} WINS!`;
+            
+            const listDiv = document.getElementById('final-scores-list');
+            listDiv.innerHTML = '';
+            listObj.forEach((item, index) => {
+                const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : '🔹';
+                listDiv.innerHTML += `<div style="display:flex; justify-content:space-between; width:100%; max-width:250px; margin:0 auto;"><span>${medal} Team ${item.team}</span> <strong>${item.score} Pts</strong></div>`;
+            });
+
+            switchScreen('final');
+        }
+
+        function playSound(audio) {
+            audio.currentTime = 0;
+            audio.play().catch(e => console.log("Audio playback issue", e));
+        }
+
+        updateSetupUI();
+    </script>
 </body>
 </html>
