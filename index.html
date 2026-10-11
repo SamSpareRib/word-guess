@@ -324,8 +324,8 @@
     <!-- 音效资产：使用100%稳定的官方音源 -->
     <audio id="sfx-correct" src="https://www.myinstants.com/media/sounds/mario-coin.mp3" preload="auto"></audio>
     <audio id="sfx-beep" src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg" preload="auto"></audio>
-    <audio id="sfx-timeout" src="https://actions.google.com/sounds/v1/alarms/bugle_tune.ogg" preload="auto"></audio>
-
+    <audio id="sfx-timeout" src="https://actions.google.com/sounds/v1/cartoon/cartoon_boing.ogg" preload="auto"></audio>
+    <audio id="sfx-skip" src="https://actions.google.com/sounds/v1/cartoon/cartoon_boing.ogg" preload="auto"></audio>
     <script>
         const wordDb = {
             animals: {
@@ -396,7 +396,7 @@
             playingTeam: document.getElementById('playing-team-label'), progressLabel: document.getElementById('progress-label'), currentScore: document.getElementById('current-round-score'),
             turnIndicator: document.getElementById('turn-indicator'), lbdModal: document.getElementById('leaderboard-modal'), scoresContainer: document.getElementById('scores-container'), topBar: document.getElementById('top-bar')
         };
-        const sounds = { correct: document.getElementById('sfx-correct'), beep: document.getElementById('sfx-beep'), timeout: document.getElementById('sfx-timeout') };
+        const sounds = { correct: document.getElementById('sfx-correct'), beep: document.getElementById('sfx-beep'), timeout: document.getElementById('sfx-timeout'), skip: document.getElementById('sfx-skip') };
 
         // 分类与难度按钮事件
         document.querySelectorAll('.selection-grid .card-btn').forEach(btn => {
@@ -536,6 +536,7 @@
                 els.wordDisplay.style.color = 'var(--success)';
             } else {
                 els.wordDisplay.style.color = 'var(--danger)';
+                playSound(sounds.skip);
             }
 
             state.currentWordIndex++;
