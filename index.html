@@ -155,7 +155,7 @@
         
         .word-container { flex-grow: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 20px; text-align: center; }
         /* 在这里修改为 text-transform: lowercase; 让所有词汇显示为小写 */
-        #current-word { font-size: 5em; font-weight: 900; color: var(--dark); text-transform: lowercase; word-break: break-word; line-height: 1.1; margin-bottom: 15px; }
+        #current-word { font-size: 5em; font-weight: 900; color: var(--dark); text-transform: lowercase; white-space: nowrap; line-height: 1.1; margin-bottom: 15px; }
         #word-points { font-size: 1.2em; font-weight: bold; color: var(--warning); background: #fcf3cf; padding: 5px 15px; border-radius: 20px; }
 
         .timer-container { text-align: center; padding: 10px; background: #f8f9fa; border-top: 2px solid var(--light); }
@@ -505,6 +505,17 @@
             
             els.wordDisplay.textContent = currentObj.text;
             els.wordDisplay.style.color = 'var(--dark)';
+
+            // 核心2：根据字母数量动态缩放字体大小，防止长词超出屏幕边界
+            const wordLen = currentObj.text.length;
+            if (wordLen > 14) {
+                els.wordDisplay.style.fontSize = "min(7vw, 2.5em)"; // 极长词汇 (如 artificial intelligence)
+            } else if (wordLen > 9) {
+                els.wordDisplay.style.fontSize = "min(10.5vw, 3.5em)"; // 中长词汇 (如 technology)
+            } else {
+                els.wordDisplay.style.fontSize = "5em"; // 短词汇保持最大
+            }
+
             els.pointsDisplay.textContent = `+${currentObj.points}`;
             els.pointsDisplay.classList.remove('hidden');
             els.progressLabel.textContent = `${state.currentWordIndex + 1}/${state.roundWords.length}`;
